@@ -2,43 +2,29 @@
 INCLUDE_PATH=
 LIBRARY_PATH=
 
-# ----- Set the C++ standard using R's conventional variable ---------------
-# We use C++17 as required by Stan. R's build system will use the
-# appropriate compiler flag (e.g., -std=c++17 or -std=gnu++17).
+# Stan requires C++17
 CXX_STD = CXX17
 
-# ----- Find CmdStan and BridgeStan paths ----------------------------------
-# This is essential as we need their headers. We delegate finding the
-# paths to the respective R packages, which is robust.
 CMDSTAN_PATH = $(HOME)/.cmdstan/cmdstan-2.36.0
 BRIDGESTAN_PATH = $(HOME)/.bridgestan/bridgestan-2.6.2
 
-# ----- Define paths to Stan/TBB libraries based on the CmdStan path -------
 STAN_LIB = $(CMDSTAN_PATH)/stan/lib
 STAN_MATH_LIB = $(CMDSTAN_PATH)/stan/lib/stan_math/lib
 TBB_PATH = $(STAN_MATH_LIB)/tbb
 
-# ----- Define all necessary compiler include flags ------------------------
-# We create a single variable for our include flags for clarity.
-# Note: We do NOT need to add includes for Rcpp, RcppEigen, etc.,
-# because they are handled automatically by 'LinkingTo' in DESCRIPTION.
+# Headers for Rcpp and RcppEigen are defined in the LinkingTo field in the DESCRIPTION file.
+# Setting CXXFLAGS, or CPPFLAGS duplicates flags, so only set PKG_INCLUDES.
 PKG_INCLUDES = \
   -I"$(STAN_LIB)/rapidjson_1.1.0/" \
   -I"$(STAN_MATH_LIB)/eigen_3.4.0" \
   -I"$(STAN_MATH_LIB)/boost_1.84.0" \
   -I"$(STAN_MATH_LIB)/sundials_6.1.1/include" \
-  -I"$(TBB_PATH)" \
   -I"$(CMDSTAN_PATH)/stan" \
   -I"$(CMDSTAN_PATH)/stan/src" \
   -I"$(CMDSTAN_PATH)/stan/lib/stan_math/" \
   -I"$(BRIDGESTAN_PATH)/src"
 
-# ----- Define package-specific compiler flags (PKG_CXXFLAGS) --------------
-# This is the standard R variable for package-specific C++ flags.
-# We do NOT touch CXXFLAGS, CPPFLAGS, etc. to avoid duplication.
-# We use R's standard OpenMP flags for portability.
-# -O2 is a safe and standard optimization level. -O3 is also fine if preferred.
-# -fPIC is essential for creating shared libraries.
+# Standard auxiliary flags.
 PKG_CXXFLAGS = \
   -O2 \
   -fPIC \
@@ -49,10 +35,7 @@ PKG_CXXFLAGS = \
   -Wno-ignored-attributes \
   -Wno-deprecated-declarations
 
-# ----- Define package-specific linker flags (PKG_LIBS) --------------------
-# This variable tells the linker what libraries to link against.
-# We need to link to Stan's TBB library and use R's standard OpenMP libraries.
-# The -Wl,-rpath flag tells the final library where to find TBB at runtime.
-PKG_LIBS = \
-  $(SHLIB_OPENMP_LIBS) \
-  -L"$(TBB_PATH)" -ltbb -Wl,-rpath,"$(TBB_PATH)"
+PKG_LIBS = $(SHLIB_OPENMP_LIBS) -L"$(TBB_PATH)" -ltbb -Wl,-rpath,"$(TBB_PATH)"
+
+# Remove when done debugging
+override CXX17FLAGS = -O1 -fPIC -g0
